@@ -7,6 +7,21 @@ It integrates with **Home Assistant via MQTT** and also exposes a **simple web i
     <img src="./images/remote.jpeg" />
 </div>
 
+## Information
+
+I have only tested this on my own fireplace which is an `i1800e`, but all of the following ranges below _should_ work as well, but they have not been tested.
+
+|  Fireplace | Tested    | Working        |
+|------------|-----------|----------------|
+| i750e      | false     | unknown        |
+| i1000e     | false     | unknown        |
+| i1250e     | false     | unknown        |
+| i1500e     | false     | unknown        |
+| i1800e     | true      | Yes            |
+| i2200e     | false     | unknown        |
+
+I plan to add reverse engineer more button features with the aim to evtually map the full controller, when time permits.
+
 ## Hardware
 
 - ESP32-WROOM-32 dev board (e.g. ESP32 DevKit)
