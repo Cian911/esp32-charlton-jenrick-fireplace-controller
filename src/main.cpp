@@ -2,8 +2,14 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <cc1101.h>
+#include <esp_task_wdt.h>
 
 using namespace CC1101;
+
+// ------------ USER CONFIG ------------
+
+// Reboot options
+const long rebootTime = 24; // Reboot device every 24 hours
 
 // Wi-Fi
 const char* WIFI_SSID     = "";
@@ -12,13 +18,13 @@ const char* WIFI_PASSWORD = "";
 // MQTT broker
 const char* MQTT_HOST      = "";  // your HA/Mosquitto IP or hostname
 const uint16_t MQTT_PORT   = 1883;
-const char* MQTT_USER      = "rfid";     // or nullptr if no auth
-const char* MQTT_PASSWORD  = "";     // or nullptr if no auth
+const char* MQTT_USER      = "";     
+const char* MQTT_PASSWORD  = "";     
 const char* MQTT_CLIENT_ID = "esp32_fireplace_1";
 
 // MQTT topics
-const char* MQTT_CMND_TOPIC  = "home/fireplace/cmnd";
-const char* MQTT_STATE_TOPIC = "home/fireplace/state";
+const char* MQTT_CMND_TOPIC  = "fireplace/cmnd";
+const char* MQTT_STATE_TOPIC = "fireplace/state";
 
 // Home Assistant MQTT discovery topic
 const char* HA_DISCOVERY_TOPIC =
@@ -31,29 +37,32 @@ static constexpr uint8_t PIN_CS   = 5;
 static constexpr uint8_t PIN_CLK  = 18;
 static constexpr uint8_t PIN_MISO = 19;
 static constexpr uint8_t PIN_MOSI = 23;
-static constexpr uint8_t PIN_GDO0 = 21;  // your GDO0 pin
+static constexpr uint8_t PIN_GDO0 = 21;  // GDO0 pin
 
 // Radio(cs, clk, miso, mosi, gd0, gd2)
 Radio radio(PIN_CS, PIN_CLK, PIN_MISO, PIN_MOSI, PIN_GDO0);
 
 // ------------ PAYLOADS ------------
 
-// Your working ON payload (unchanged)
 uint8_t on_payload[] = {
   0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x4A, 0x48, 0x60, 0xCE, 0xC2, 0xE2, 0x00, 0x20, 0x00, 0x00, 0x00, 0x1F, 0x32, 0xB2, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xA9, 0x49, 0x0C, 0x19, 0xD8, 0x5C, 0x40, 0x04, 0x00, 0x00, 0x00, 0x03, 0xE6, 0x56, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x29, 0x21, 0x83, 0x3B, 0x0B, 0x88, 0x00, 0x80, 0x00, 0x00, 0x00, 0x7C, 0xCA, 0xCA
 };
 
-// Placeholder OFF payload – fill this when you have it
 uint8_t off_payload[] = {
   // TODO: replace with real OFF bytes when you capture them
   0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x29, 0x21, 0x83, 0x3B, 0x0B, 0x88, 0x01, 0x00, 0x00, 0x00, 0x00, 0x7D, 0x35, 0x8B, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0A, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xA5, 0x24, 0x30, 0x67, 0x61, 0x71, 0x00, 0x20, 0x00, 0x00, 0x00, 0x0F, 0xA6, 0xB1, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x54, 0xA4, 0x86, 0x0C, 0xEC, 0x2E, 0x20, 0x04, 0x00, 0x00, 0x00, 0x01, 0xF4, 0xD6, 0x2E
 };
 
+// TODO: Reverse more button options and add them here
 
 bool fireplace_state_on = false;
 
+// -------------------- NETWORK OBJECTS --------------------
+
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+
+// -------------------- HELPERS --------------------
 
 void configure_radio_for_fireplace() {
   Serial.println(F("[RF] Configuring CC1101 for fireplace..."));
@@ -157,7 +166,8 @@ void publish_ha_discovery() {
   })";
 
   Serial.println(F("[MQTT] Publishing Home Assistant discovery config..."));
-  mqttClient.publish(HA_DISCOVERY_TOPIC, discovery_payload, true);
+  mqttClient.publish(HA_DISCOVERY_TOPIC, discovery_payload, true); // retain the msg
+  Serial.println(F("[MQTT] Published discovery event."));
 }
 
 void connect_mqtt() {
@@ -223,10 +233,16 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+// -------------------- ARDUINO SETUP / LOOP --------------------
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println(F("\n=== ESP32 Fireplace Controller ==="));
+
+  // Start reboot watchdog
+  esp_task_wdt_init(rebootTime * 3600, true); // 3600 seconds p/h
+  esp_task_wdt_add(NULL); // Add current task to watchdog
 
   connect_wifi();
 
