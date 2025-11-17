@@ -3,6 +3,7 @@
 #include <PubSubClient.h>
 #include <cc1101.h>
 #include <esp_task_wdt.h>
+#include <WebServer.h>
 
 using namespace CC1101;
 
@@ -18,8 +19,8 @@ const char* WIFI_PASSWORD = "";
 // MQTT broker
 const char* MQTT_HOST      = "";  // your HA/Mosquitto IP or hostname
 const uint16_t MQTT_PORT   = 1883;
-const char* MQTT_USER      = "";     
-const char* MQTT_PASSWORD  = "";     
+const char* MQTT_USER      = "";     // or nullptr if no auth
+const char* MQTT_PASSWORD  = "";     // or nullptr if no auth
 const char* MQTT_CLIENT_ID = "esp32_fireplace_1";
 
 // MQTT topics
@@ -61,6 +62,7 @@ bool fireplace_state_on = false;
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+WebServer server(80);
 
 // -------------------- HELPERS --------------------
 
@@ -233,6 +235,65 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+// -------------------- WEB SERVER HANDLERS --------------------
+
+String html_page() {
+  String state = fireplace_state_on ? "ON" : "OFF";
+  String html = F(
+    "<!DOCTYPE html><html><head>"
+    "<meta name='viewport' content='width=device-width,initial-scale=1'/>"
+    "<title>Fireplace Controller</title>"
+    "<style>"
+    "body{font-family:sans-serif;background:#111;color:#eee;text-align:center;padding:2rem;}"
+    "button{font-size:1.2rem;padding:0.7rem 1.5rem;margin:0.5rem;border-radius:0.5rem;border:none;cursor:pointer;}"
+    ".on{background:#2ecc71;color:#000;}"
+    ".off{background:#e74c3c;color:#000;}"
+    ".state{margin-top:1rem;font-size:1.1rem;}"
+    "</style>"
+    "</head><body>"
+    "<h1>Fireplace Controller</h1>"
+    "<div>"
+    "<button class='on' onclick=\"fetch('/on')\">ON</button>"
+    "<button class='off' onclick=\"fetch('/off')\">OFF</button>"
+    "</div>"
+    "<div class='state'>Current state: <span id='st'></span></div>"
+    "<script>"
+    "async function updateState(){"
+      "let r = await fetch('/state');"
+      "let j = await r.json();"
+      "document.getElementById('st').innerText = j.state;"
+    "}"
+    "updateState();"
+    "setInterval(updateState, 3000);"
+    "</script>"
+    "</body></html>"
+  );
+  return html;
+}
+
+void handleRoot() {
+  server.send(200, "text/html", html_page());
+}
+
+void handleOn() {
+  send_fireplace_on();
+  fireplace_state_on = true;
+  publish_state("ON");
+  server.send(200, "application/json", "{\"result\":\"ON\"}");
+}
+
+void handleOff() {
+  send_fireplace_off();
+  fireplace_state_on = false;
+  publish_state("OFF");
+  server.send(200, "application/json", "{\"result\":\"OFF\"}");
+}
+
+void handleState() {
+  String json = String("{\"state\":\"") + (fireplace_state_on ? "ON" : "OFF") + "\"}";
+  server.send(200, "application/json", json);
+}
+
 // -------------------- ARDUINO SETUP / LOOP --------------------
 
 void setup() {
@@ -245,6 +306,14 @@ void setup() {
   esp_task_wdt_add(NULL); // Add current task to watchdog
 
   connect_wifi();
+
+  // Web server routes
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/on", HTTP_GET, handleOn);
+  server.on("/off", HTTP_GET, handleOff);
+  server.on("/state", HTTP_GET, handleState);
+  server.begin();
+  Serial.println(F("[HTTP] Web server started on port 80."));
 
   mqttClient.setCallback(mqtt_callback);
   connect_mqtt();
@@ -269,5 +338,6 @@ void loop() {
     connect_mqtt();
   }
   mqttClient.loop();
+  server.handleClient();
 }
 
