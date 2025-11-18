@@ -91,3 +91,7 @@ Once an IP has been assigned, you can go view and interact with the controller f
     <img src="./images/webui.png" />
 </div>
 
+
+### Contributors
+
+A massive thanks to [@cthuwu_chan](https://www.reddit.com/user/cthuwu_chan/) who helped me decode the signal originally. :bow:
