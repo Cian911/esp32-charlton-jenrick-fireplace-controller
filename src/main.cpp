@@ -1,4 +1,3 @@
-#include "HardwareSerial.h"
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -8,13 +7,15 @@
 #include <esp_task_wdt.h>
 #include <WebServer.h>
 #include <secrets.h>
+#include "HardwareSerial.h"
 
 using namespace CC1101;
 
 // ------------ USER CONFIG ------------
 
 // Reboot options
-const long rebootTime = 24; // Reboot device every 24 hours
+unsigned long last_reboot = 0;
+const unsigned long REBOOT_INTERVAL = 43200000;  // 12 hours
 
 // MQTT broker
 const uint16_t MQTT_PORT   = 1883;
@@ -125,6 +126,7 @@ void fireplace_listen() {
   Status status = radio.receive((uint8_t *)buff, sizeof(buff) -1, &read);
 
   if (status == STATUS_OK) {
+    Serial.println("Recieved Message: ");
     Serial.println(buff);
   } else {
     Serial.println("Error receiving data: ");
@@ -316,8 +318,7 @@ void setup() {
   Serial.println(F("\n=== ESP32 Fireplace Controller ==="));
 
   // Start reboot watchdog
-  esp_task_wdt_init(rebootTime * 3600, true); // 3600 seconds p/h
-  esp_task_wdt_add(NULL); // Add current task to watchdog
+  last_reboot = millis();
 
   connect_wifi();
 
@@ -356,5 +357,12 @@ void loop() {
 
   // Listen for fireplace remote
   fireplace_listen();
+
+  // Check last reboot
+  if (millis() - last_reboot > REBOOT_INTERVAL) {
+    Serial.println("[SYS] Rebooting (12-hour scheduled reset)");
+    delay(100);
+    esp_restart();
+  }
 }
 
