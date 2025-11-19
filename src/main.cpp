@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <esp_task_wdt.h>
 #include <WebServer.h>
+#include <secrets.h>
 
 using namespace CC1101;
 
@@ -15,15 +16,8 @@ using namespace CC1101;
 // Reboot options
 const long rebootTime = 24; // Reboot device every 24 hours
 
-// Wi-Fi
-const char* WIFI_SSID     = "";
-const char* WIFI_PASSWORD = "";
-
 // MQTT broker
-const char* MQTT_HOST      = "";  // your HA/Mosquitto IP or hostname
 const uint16_t MQTT_PORT   = 1883;
-const char* MQTT_USER      = "";     // or nullptr if no auth
-const char* MQTT_PASSWORD  = "";     // or nullptr if no auth
 const char* MQTT_CLIENT_ID = "esp32_fireplace_1";
 
 // MQTT topics
