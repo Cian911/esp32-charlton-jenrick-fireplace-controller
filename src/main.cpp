@@ -1,7 +1,10 @@
+#include "HardwareSerial.h"
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <cc1101.h>
+#include <cstddef>
+#include <cstdint>
 #include <esp_task_wdt.h>
 #include <WebServer.h>
 
@@ -117,6 +120,23 @@ void send_fireplace_off() {
   Serial.println(F("[RF] Sending OFF payload..."));
   Status tx = radio.transmit(off_payload, sizeof(off_payload));
   Serial.print(F("[RF] TX OFF status: ")); Serial.println(tx);
+}
+
+void fireplace_listen() {
+  // Create buffer
+  char buff[32];
+  size_t read;
+
+  Serial.println("Recieving...");
+  Status status = radio.receive((uint8_t *)buff, sizeof(buff) -1, &read);
+
+  if (status == STATUS_OK) {
+    Serial.println(buff);
+  } else {
+    Serial.println("Error receiving data: ");
+    Serial.println(buff);
+  }
+  Serial.println();
 }
 
 void publish_state(const char* state) {
@@ -339,5 +359,8 @@ void loop() {
   }
   mqttClient.loop();
   server.handleClient();
+
+  // Listen for fireplace remote
+  fireplace_listen();
 }
 

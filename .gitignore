@@ -1,3 +1,4 @@
 .pio
 main.cpp.bak
 .cache/
+compile_commands.json
