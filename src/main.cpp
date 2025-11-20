@@ -2,25 +2,25 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <cc1101.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <esp_task_wdt.h>
 #include <WebServer.h>
+#include <secrets.h>
+#include "HardwareSerial.h"
 
 using namespace CC1101;
 
 // ------------ USER CONFIG ------------
 
 // Reboot options
-const long rebootTime = 24; // Reboot device every 24 hours
-
-// Wi-Fi
-const char* WIFI_SSID     = "";
-const char* WIFI_PASSWORD = "";
+unsigned long last_reboot = 0;
+const unsigned long REBOOT_INTERVAL = 43200000;  // 12 hours
 
 // MQTT broker
-const char* MQTT_HOST      = "";  // your HA/Mosquitto IP or hostname
+bool mqtt_enabled = false;
 const uint16_t MQTT_PORT   = 1883;
-const char* MQTT_USER      = "";     // or nullptr if no auth
-const char* MQTT_PASSWORD  = "";     // or nullptr if no auth
 const char* MQTT_CLIENT_ID = "esp32_fireplace_1";
 
 // MQTT topics
@@ -119,6 +119,28 @@ void send_fireplace_off() {
   Serial.print(F("[RF] TX OFF status: ")); Serial.println(tx);
 }
 
+// TODO: Implement logic to switch between TX & RX as needed
+// As cc1101 is half-duplex we can only do one action at a time
+// We _should_ be able to RX, stop, then TX as commands come in (in theory)
+// Then just listen and update the state when the actual remote has been used.
+void fireplace_listen() {
+  // Create buffer
+  char buff[32];
+  size_t read;
+
+  Serial.println("Recieving...");
+  Status status = radio.receive((uint8_t *)buff, sizeof(buff) -1, &read);
+
+  if (status == STATUS_OK) {
+    Serial.println("Recieved Message: ");
+    Serial.println(buff);
+  } else {
+    Serial.println("Error receiving data: ");
+    Serial.println(buff);
+  }
+  Serial.println();
+}
+
 void publish_state(const char* state) {
   Serial.print(F("[MQTT] Publishing state: "));
   Serial.println(state);
@@ -130,6 +152,8 @@ void connect_wifi() {
   Serial.println(WIFI_SSID);
 
   WiFi.mode(WIFI_STA);
+  Serial.println("SSID: ");
+  Serial.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int tries = 0;
@@ -302,8 +326,7 @@ void setup() {
   Serial.println(F("\n=== ESP32 Fireplace Controller ==="));
 
   // Start reboot watchdog
-  esp_task_wdt_init(rebootTime * 3600, true); // 3600 seconds p/h
-  esp_task_wdt_add(NULL); // Add current task to watchdog
+  last_reboot = millis();
 
   connect_wifi();
 
@@ -315,9 +338,14 @@ void setup() {
   server.begin();
   Serial.println(F("[HTTP] Web server started on port 80."));
 
-  mqttClient.setCallback(mqtt_callback);
-  connect_mqtt();
+  if (strlen(MQTT_HOST) > 0) {
+    mqtt_enabled = true;
+  }
 
+  if (mqtt_enabled) {
+    mqttClient.setCallback(mqtt_callback);
+    connect_mqtt();
+  }
   // Init radio *after* WiFi is stable
   Status st = radio.begin();
   Serial.print(F("[RF] radio.begin() = "));
@@ -334,10 +362,24 @@ void setup() {
 }
 
 void loop() {
-  if (!mqttClient.connected()) {
+  if (mqtt_enabled && !mqttClient.connected()) {
     connect_mqtt();
   }
-  mqttClient.loop();
+
+  if (mqtt_enabled) {
+    mqttClient.loop();
+  }
+
   server.handleClient();
+
+  // Listen for fireplace remote
+  // fireplace_listen();
+
+  // Check last reboot
+  if (millis() - last_reboot > REBOOT_INTERVAL) {
+    Serial.println("[SYS] Rebooting (12-hour scheduled reset)");
+    delay(100);
+    esp_restart();
+  }
 }
 

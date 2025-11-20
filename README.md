@@ -11,14 +11,14 @@ It integrates with **Home Assistant via MQTT** and also exposes a **simple web i
 
 I have only tested this on my own fireplace which is an `i1800e`, but all of the following ranges below _should_ work as well, but they have not been tested.
 
-|  Fireplace | Tested    | Working        |
-|------------|-----------|----------------|
-| i750e      | false     | unknown        |
-| i1000e     | false     | unknown        |
-| i1250e     | false     | unknown        |
-| i1500e     | false     | unknown        |
-| i1800e     | true      | Yes            |
-| i2200e     | false     | unknown        |
+| Fireplace | Tested | Working |
+| --------- | ------ | ------- |
+| i750e     | false  | unknown |
+| i1000e    | false  | unknown |
+| i1250e    | false  | unknown |
+| i1500e    | false  | unknown |
+| i1800e    | true   | Yes     |
+| i2200e    | false  | unknown |
 
 I plan to add reverse engineer more button features with the aim to evtually map the full controller, when time permits.
 
@@ -32,16 +32,16 @@ I plan to add reverse engineer more button features with the aim to evtually map
 
 ### Wiring
 
-| CC1101 pin | ESP32 pin | Notes          |
-|------------|-----------|----------------|
-| VCC        | 3V3       | 3.3 V only     |
-| GND        | GND       | Common ground  |
-| CSN (CS)   | GPIO5     | Chip select    |
-| SCK        | GPIO18    | SPI SCK        |
-| SO (MISO)  | GPIO19    | SPI MISO       |
-| SI (MOSI)  | GPIO23    | SPI MOSI       |
-| GDO0       | GPIO21    | Used by library|
-| GDO2       | —         | Not connected  |
+| CC1101 pin | ESP32 pin | Notes           |
+| ---------- | --------- | --------------- |
+| VCC        | 3V3       | 3.3 V only      |
+| GND        | GND       | Common ground   |
+| CSN (CS)   | GPIO5     | Chip select     |
+| SCK        | GPIO18    | SPI SCK         |
+| SO (MISO)  | GPIO19    | SPI MISO        |
+| SI (MOSI)  | GPIO23    | SPI MOSI        |
+| GDO0       | GPIO21    | Used by library |
+| GDO2       | —         | Not connected   |
 
 ## Software
 
@@ -91,6 +91,19 @@ Once an IP has been assigned, you can go view and interact with the controller f
     <img src="./images/webui.png" />
 </div>
 
+### Contributing
+
+#### LSP Config
+
+I use `clangd` as my LSP. To get it to be aware of `platformio` libs you need to feed it PlatformIO’s compile flags & include paths. Run the following:
+
+`pio run -t compiledb`
+
+This should create a file called `compile_commands.json` in the root of the project.
+
+#### Secrets
+
+Rename `secrets-sample.h` in `src/` folder to `secrets.h` and add the needed information for wifi/mqtt.
 
 ### Contributors
 
