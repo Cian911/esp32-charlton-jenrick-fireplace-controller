@@ -70,7 +70,7 @@ void configure_radio_for_fireplace() {
   radio.setOutputPower(10);
 
   // Packet settings – fixed length, no CRC/whitening/etc.
-  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(on_payload));
+  // radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(on_payload));
   radio.setAddressFilteringMode(ADDR_FILTER_MODE_NONE);
   radio.setPreambleLength(64);            // bits
   radio.setSyncWord(0xA55A);              // arbitrary sync word
@@ -85,12 +85,14 @@ void configure_radio_for_fireplace() {
 }
 
 void send_on_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(on_payload));
   Serial.println(F("[RF] Sending ON payload..."));
   Status tx = radio.transmit(on_payload, sizeof(on_payload));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_off_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(off_payload));
   if (sizeof(off_payload) == 0) {
     Serial.println(F("[RF] OFF payload is empty – no RF sent."));
     return;
@@ -101,36 +103,42 @@ void send_off_btn_payload() {
 }
 
 void send_flame_effect_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(flame_effect_btn));
   Serial.println(F("[RF] Sending FLAME_EFT payload..."));
   Status tx = radio.transmit(flame_effect_btn, sizeof(flame_effect_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_sound_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(sound_btn));
   Serial.println(F("[RF] Sending SND_BTN payload..."));
   Status tx = radio.transmit(sound_btn, sizeof(sound_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_left_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(left_btn));
   Serial.println(F("[RF] Sending LFT_BTN payload..."));
   Status tx = radio.transmit(left_btn, sizeof(left_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_right_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(right_btn));
   Serial.println(F("[RF] Sending RGT_BTN payload..."));
   Status tx = radio.transmit(right_btn, sizeof(right_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_plus_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(plus_btn));
   Serial.println(F("[RF] Sending PLUS_BTN payload..."));
   Status tx = radio.transmit(plus_btn, sizeof(plus_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
 }
 
 void send_minus_btn_payload() {
+  radio.setPacketLengthMode(PKT_LEN_MODE_FIXED, sizeof(minus_btn));
   Serial.println(F("[RF] Sending MINUS_BTN payload..."));
   Status tx = radio.transmit(minus_btn, sizeof(minus_btn));
   Serial.print(F("[RF] TX ON status: ")); Serial.println(tx);
