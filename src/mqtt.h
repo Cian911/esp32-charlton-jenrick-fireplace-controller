@@ -1,8 +1,8 @@
 #pragma once
 
 // MQTT topics
-static const char* MQTT_CMND_TOPIC  = "fireplace/cmnd";
-static const char* MQTT_STATE_TOPIC = "fireplace/state";
+static const char* MQTT_CMND_TOPIC  = "home/fireplace/cmnd";
+static const char* MQTT_STATE_TOPIC = "home/fireplace/state";
 
 // Discovery topics
 static const char* HA_DISCOVERY_LEFT_TOPIC =
@@ -62,7 +62,6 @@ static const char right_payload_discovery[] = R"({
   }
 })";
 
-
 // Flame Effect Button
 static const char flame_effect_payload_discovery[] = R"({
   "name": "Fireplace Flame Effect",
@@ -73,7 +72,6 @@ static const char flame_effect_payload_discovery[] = R"({
     "identifiers": ["esp32_fireplace"]
   }
 })";
-
 
 // Sound Button
 static const char sound_payload_discovery[] = R"({
@@ -107,3 +105,4 @@ static const char minus_payload_discovery[] = R"({
     "identifiers": ["esp32_fireplace"]
   }
 })";
+
